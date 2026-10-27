@@ -661,6 +661,127 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2b9853b1a1830784db299fe51f6155c8, type: 3}
   m_PrefabInstance: {fileID: 277752700}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &301248149
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 301248150}
+  - component: {fileID: 301248154}
+  - component: {fileID: 301248153}
+  - component: {fileID: 301248152}
+  - component: {fileID: 301248151}
+  m_Layer: 0
+  m_Name: RedTeam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &301248150
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301248149}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.088, y: 1.385, z: -0.98}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450652451306096}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &301248151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301248149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4370e84e81e14e1498b7c2ece3cee4f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamKeyboardController
+  layout: 0
+  rods:
+  - {fileID: 560807307}
+  - {fileID: 1599961924}
+  - {fileID: 338303202}
+  - {fileID: 646387491}
+  activeRod: 0
+  slideSpeed: 2.5
+  maxAngle: 80
+  snapSpeed: 30
+--- !u!114 &301248152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301248149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fb8c7a81b1224041b44ebb439e6b33a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamInputSwitcher
+  isBlueTeam: 0
+  gamepadScript: {fileID: 301248153}
+  keyboardScript: {fileID: 301248151}
+  aiScript: {fileID: 301248154}
+--- !u!114 &301248153
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301248149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9136a5c95947b304eb7601060713ebd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamGamepadController
+  rods:
+  - {fileID: 560807307}
+  - {fileID: 1599961924}
+  - {fileID: 338303202}
+  - {fileID: 646387491}
+  activeRod: 0
+  slideSpeed: 2.5
+  maxAngle: 80
+  snapSpeed: 25
+  deadzone: 0.2
+--- !u!114 &301248154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 301248149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d70d03514e5acf4698e6cb0f299e469, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamAIController
+  rods:
+  - {fileID: 560807307}
+  - {fileID: 1599961924}
+  - {fileID: 338303202}
+  - {fileID: 646387491}
+  ball: {fileID: 48004047}
+  slideSpeed: 2
+  predictionTime: 0.08
+  deadzone: 0.015
+  maxAngle: 80
+  snapSpeed: 30
+  kickRange: 0.16
+  windUpRange: 0.35
+  kickDirection: -1
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -987,8 +1108,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f4cbbd5dd680484b9d8e4f0f1d2ac3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoosballRod
-  minSlide: -0.18
-  maxSlide: 0.168
+  minSlide: -0.19
+  maxSlide: 0.166
   minAngle: -90
   maxAngle: 90
 --- !u!54 &338303203
@@ -1318,7 +1439,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f4cbbd5dd680484b9d8e4f0f1d2ac3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoosballRod
-  minSlide: -0.43
+  minSlide: -0.45
   maxSlide: 0.45
   minAngle: -90
   maxAngle: 90
@@ -1691,8 +1812,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f4cbbd5dd680484b9d8e4f0f1d2ac3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoosballRod
-  minSlide: -0.168
-  maxSlide: 0.35
+  minSlide: -0.19
+  maxSlide: 0.165
   minAngle: -90
   maxAngle: 90
 --- !u!54 &646387492
@@ -1859,6 +1980,127 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 654600818}
   m_CullTransparentMesh: 1
+--- !u!1 &661021826
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 661021827}
+  - component: {fileID: 661021831}
+  - component: {fileID: 661021830}
+  - component: {fileID: 661021829}
+  - component: {fileID: 661021828}
+  m_Layer: 0
+  m_Name: BlueTeam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &661021827
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661021826}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.088, y: 1.385, z: 1.032}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 543450652451306096}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &661021828
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661021826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4370e84e81e14e1498b7c2ece3cee4f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamKeyboardController
+  layout: 0
+  rods:
+  - {fileID: 1183097227}
+  - {fileID: 1911484483}
+  - {fileID: 111093893}
+  - {fileID: 1464775932}
+  activeRod: 0
+  slideSpeed: 2.5
+  maxAngle: 80
+  snapSpeed: 30
+--- !u!114 &661021829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661021826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fb8c7a81b1224041b44ebb439e6b33a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamInputSwitcher
+  isBlueTeam: 1
+  gamepadScript: {fileID: 661021830}
+  keyboardScript: {fileID: 661021828}
+  aiScript: {fileID: 661021831}
+--- !u!114 &661021830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661021826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9136a5c95947b304eb7601060713ebd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamGamepadController
+  rods:
+  - {fileID: 1183097227}
+  - {fileID: 1911484483}
+  - {fileID: 111093893}
+  - {fileID: 1464775932}
+  activeRod: 0
+  slideSpeed: 2.5
+  maxAngle: 80
+  snapSpeed: 25
+  deadzone: 0.2
+--- !u!114 &661021831
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661021826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d70d03514e5acf4698e6cb0f299e469, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamAIController
+  rods:
+  - {fileID: 1183097227}
+  - {fileID: 1911484483}
+  - {fileID: 111093893}
+  - {fileID: 1464775932}
+  ball: {fileID: 48004047}
+  slideSpeed: 2
+  predictionTime: 0.08
+  deadzone: 0.015
+  maxAngle: 80
+  snapSpeed: 30
+  kickRange: 0.16
+  windUpRange: 0.35
+  kickDirection: -1
 --- !u!1001 &673442054
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4532,8 +4774,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f4cbbd5dd680484b9d8e4f0f1d2ac3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoosballRod
-  minSlide: -0.26
-  maxSlide: 0.35
+  minSlide: -0.28
+  maxSlide: 0.27
   minAngle: -90
   maxAngle: 90
 --- !u!54 &1599961925
@@ -5887,6 +6129,8 @@ Transform:
   - {fileID: 1624384438499534778}
   - {fileID: 2109178810}
   - {fileID: 829910176}
+  - {fileID: 301248150}
+  - {fileID: 661021827}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &555049062472023148
@@ -6140,9 +6384,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 543450652451306096}
-  - component: {fileID: 919132148263297229}
-  - component: {fileID: 919132148263297228}
-  - component: {fileID: 919132148263297227}
   m_Layer: 0
   m_Name: Table
   m_TagString: Untagged
@@ -6150,75 +6391,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &919132148263297227
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919132148263297226}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 013a47e119bcdd644b7e85b0509627f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FoosballTeamManager
-  rods:
-  - {fileID: 1183097227}
-  - {fileID: 1911484483}
-  - {fileID: 111093893}
-  - {fileID: 1464775932}
-  activeRod: 0
-  slideSpeed: 2.5
-  maxAngle: 80
-  snapSpeed: 25
-  deadzone: 0.2
---- !u!114 &919132148263297228
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919132148263297226}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b38c5dbe42b78b548b02b8a0722ff18f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RedTeamAI
-  redRods:
-  - {fileID: 560807307}
-  - {fileID: 1599961924}
-  - {fileID: 338303202}
-  - {fileID: 646387491}
-  ball: {fileID: 48004047}
-  slideSpeed: 0.6
-  predictionTime: 0.08
-  deadzone: 0.015
-  maxAngle: 80
-  snapSpeed: 25
-  kickRange: 0.12
-  windUpRange: 0.35
-  kickDirection: -1
---- !u!114 &919132148263297229
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919132148263297226}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e77c45ca5932ad4387cede6c08985d4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RedTeamKeyboard
-  redRods:
-  - {fileID: 560807307}
-  - {fileID: 1599961924}
-  - {fileID: 338303202}
-  - {fileID: 646387491}
-  activeRod: 0
-  slideSpeed: 2.5
-  maxAngle: 80
-  snapSpeed: 25
 --- !u!33 &957036225150783271
 MeshFilter:
   m_ObjectHideFlags: 0

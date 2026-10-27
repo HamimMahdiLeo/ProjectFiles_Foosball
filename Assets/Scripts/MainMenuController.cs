@@ -1,43 +1,57 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem; // Required for the new Input System
+using UnityEngine.InputSystem;
 
 public class MainMenuController : MonoBehaviour
 {
-    [Header("UI Panels")]
-    public GameObject instructionsPanel; // Drag your InstructionsPanel here in Unity
+    [Header("UI Panels & Buttons")]
+    public GameObject instructionsPanel;
+    public GameObject selectSidePanel; 
+    public GameObject[] menuButtons; // Drag your 4 individual buttons here directly
 
     [Header("Links")]
-    public string googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdmMirgKKuhcSzAfCFQSaVZr0__OdTUfwHRQ11C2PhRYlSiTw/viewform";
+    public string googleFormUrl = "https://docs.google.com/forms/d/1n10Xxc1BAjbht95QYK520ul-ahuhA9GxpUiwkB2N4bs/";
 
     void Update()
     {
-        // Check if the Escape key is pressed using the new Input System
         if (instructionsPanel != null && instructionsPanel.activeSelf && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             CloseInstruction();
+        }
+        else if (selectSidePanel != null && selectSidePanel.activeSelf && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            CloseSelectSide();
         }
     }
 
     public void PlayGame()
     {
-        SceneManager.LoadScene("SampleScene");
+        if (selectSidePanel != null) selectSidePanel.SetActive(true);
+        ToggleMenuButtons(false); // Hides the main buttons safely
+    }
+
+    public void CloseSelectSide()
+    {
+        if (selectSidePanel != null) selectSidePanel.SetActive(false);
+        ToggleMenuButtons(true); // Shows the main buttons again
+    }
+
+    void ToggleMenuButtons(bool state)
+    {
+        foreach (var btn in menuButtons)
+        {
+            if (btn != null) btn.SetActive(state);
+        }
     }
 
     public void OpenInstruction()
     {
-        if (instructionsPanel != null)
-        {
-            instructionsPanel.SetActive(true); // Show the instructions panel
-        }
+        if (instructionsPanel != null) instructionsPanel.SetActive(true);
     }
 
     public void CloseInstruction()
     {
-        if (instructionsPanel != null)
-        {
-            instructionsPanel.SetActive(false); // Hide the instructions panel
-        }
+        if (instructionsPanel != null) instructionsPanel.SetActive(false);
     }
 
     public void OpenFeedback()
@@ -47,7 +61,6 @@ public class MainMenuController : MonoBehaviour
 
     public void QuitGame()
     {
-        Debug.Log("Quitting Game...");
         Application.Quit();
     }
 }

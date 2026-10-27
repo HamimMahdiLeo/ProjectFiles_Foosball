@@ -19,7 +19,6 @@ public class FoosballRod : MonoBehaviour
         startPos = transform.localPosition;
         startRot = transform.localRotation;
 
-        // Add or grab a Kinematic Rigidbody so Unity calculates smooth physics collisions
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
@@ -32,14 +31,14 @@ public class FoosballRod : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
     }
 
-    public void MoveAndRotate(float lsY, float rsX, float slideSpeed, float maxAngle, float snapSpeed)
+    public void MoveAndRotate(float lsY, float rsX, float slideSpeed, float maxAngleVal, float snapSpeed)
     {
         // 1. Slide Up/Down (Left Stick Y)
         slideOffset = Mathf.Clamp(slideOffset + lsY * slideSpeed * Time.deltaTime, minSlide, maxSlide);
         Vector3 targetLocalPos = startPos + new Vector3(slideOffset, 0f, 0f);
 
         // 2. Tilt & Hold Angle (Right Stick X), return to 0 when released
-        float targetAngle = rsX * maxAngle;
+        float targetAngle = rsX * maxAngleVal;
         currentAngle = Mathf.Lerp(currentAngle, targetAngle, snapSpeed * Time.deltaTime);
 
         // Stop microscopic lerping when nearly at rest so the foot never jitters against the ball

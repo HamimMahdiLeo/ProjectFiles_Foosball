@@ -1,0 +1,919 @@
+==================== FILE: BallBooster.cs ====================
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+[RequireComponent(typeof(Rigidbody))]
+public class BallBooster : MonoBehaviour
+{
+    public float maxSpeed = 10f;
+    public float nudgePower = 0.8f;
+
+    private Rigidbody rb;
+    private Vector3 startPos;
+    private float stuckTime = 0f;
+    private float lastSpeed = 0f;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        startPos = transform.position;
+    }
+
+    void Update()
+    {
+        // Only allow manual ball reset during active play (not during goal celebrations or after match end)
+        if (rb.isKinematic) return;
+
+        /* --- MANUAL RESET DISABLED FOR NOW ---
+        bool resetPressed = false;
+
+        // Check Keyboard 'R'
+        if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            resetPressed = true;
+        }
+
+        // Check Gamepad 'Y' (buttonNorth) across all connected controllers
+        if (!resetPressed)
+        {
+            foreach (var pad in Gamepad.all)
+            {
+                if (pad.buttonNorth.wasPressedThisFrame)
+                {
+                    resetPressed = true;
+                    break;
+                }
+            }
+        }
+
+        if (resetPressed)
+        {
+            ResetBall();
+        }
+        ---------------------------------------- */
+    }
+
+    void FixedUpdate()
+    {
+        // Pause physics logic while the ball is frozen during a goal celebration
+        if (rb.isKinematic) return;
+
+        // Auto-reset if the ball flies off the table
+        if (Vector3.Distance(transform.position, startPos) > 3.5f || transform.position.y < startPos.y - 0.5f)
+        {
+            ResetBall();
+            return;
+        }
+
+        Vector3 v = rb.linearVelocity;
+
+        // Keep the ball flat on the table surface
+        v.y = Mathf.Clamp(v.y, -1f, 0.5f);
+
+        // HARD CAP: Absolutely prevent speed from exceeding maxSpeed
+        if (v.magnitude > maxSpeed)
+        {
+            v = v.normalized * maxSpeed;
+        }
+
+        rb.linearVelocity = v;
+        lastSpeed = v.magnitude;
+
+        // Auto-nudge ONLY if completely stopped in open space for 2.5 seconds
+        if (rb.linearVelocity.magnitude < 0.03f)
+        {
+            stuckTime += Time.fixedDeltaTime;
+            if (stuckTime > 2.5f)
+            {
+                Vector3 gentlePush = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f)).normalized;
+                rb.AddForce(gentlePush * nudgePower, ForceMode.VelocityChange);
+                stuckTime = 0f;
+            }
+        }
+        else
+        {
+            stuckTime = 0f;
+        }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (rb.isKinematic) return;
+
+        stuckTime = 0f;
+
+        float currentSpeed = rb.linearVelocity.magnitude;
+
+        // Anti-Shoot Guard: If it hit a static wall (not a player) and suddenly gained speed out of nowhere, clamp it back
+        if (collision.gameObject.GetComponentInParent<FoosballRod>() == null && currentSpeed > lastSpeed * 1.15f && lastSpeed > 0.05f)
+        {
+            rb.linearVelocity = rb.linearVelocity.normalized * lastSpeed;
+        }
+    }
+
+    void OnCollisionStay(Collision collision)
+    {
+        stuckTime = 0f;
+    }
+
+    public void ResetBall()
+    {
+        stuckTime = 0f;
+        lastSpeed = 0f;
+        transform.position = startPos;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+}
+
+
+==================== FILE: BlueTeamSpawner.cs ====================
+using UnityEngine;
+
+public class BlueTeamSpawner : MonoBehaviour
+{
+    [Header("Blue Player Prefab")]
+    public GameObject bluePlayerPrefab;
+
+    [Header("Spawn Points (2-5-3)")]
+    public Transform[] spawnPoints;
+
+    [Header("Player Transform")]
+    public Vector3 positionOffset;
+    public Vector3 rotation;
+    public Vector3 scale = new Vector3(0.027f, 0.027f, 0.027f);
+
+    [ContextMenu("Spawn Blue Team")]
+    public void SpawnTeam()
+    {
+        foreach (Transform point in spawnPoints)
+        {
+            GameObject player = Instantiate(bluePlayerPrefab);
+
+            player.transform.position = point.position + positionOffset;
+            player.transform.rotation = Quaternion.Euler(rotation);
+            player.transform.localScale = scale;
+        }
+    }
+}
+
+
+==================== FILE: Camera.cs ====================
+using UnityEngine;
+
+namespace Foosball
+{
+    public class Camera : MonoBehaviour
+    {
+        public Transform target; // Drag the Ball (or Table) here
+        public float followStrength = 0.25f;
+        public float smoothSpeed = 5f;
+
+        private Vector3 startPos;
+
+        void Start()
+        {
+            // Keeps the exact camera position you set up in the Scene view
+            startPos = transform.position;
+        }
+
+        void LateUpdate()
+        {
+            if (target == null) return;
+
+            // Shifts camera slightly along the Z axis (along the table) toward the target
+            Vector3 desiredPos = startPos;
+            desiredPos.z = startPos.z + (target.position.z * followStrength);
+
+            transform.position = Vector3.Lerp(transform.position, desiredPos, smoothSpeed * Time.deltaTime);
+        }
+    }
+}
+
+
+==================== FILE: FoosballRod.cs ====================
+using UnityEngine;
+
+public class FoosballRod : MonoBehaviour
+{
+    public float minSlide = -0.35f;
+    public float maxSlide = 0.35f;
+
+    public float minAngle = -90f;
+    public float maxAngle = 90f;
+
+    private Rigidbody rb;
+    private Vector3 startPos;
+    private Quaternion startRot;
+    private float slideOffset;
+    private float currentAngle;
+
+    void Start()
+    {
+        startPos = transform.localPosition;
+        startRot = transform.localRotation;
+
+        // Add or grab a Kinematic Rigidbody so Unity calculates smooth physics collisions
+        rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+        }
+
+        rb.isKinematic = true;
+        rb.useGravity = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+    }
+
+    public void MoveAndRotate(float lsY, float rsX, float slideSpeed, float maxAngle, float snapSpeed)
+    {
+        // 1. Slide Up/Down (Left Stick Y)
+        slideOffset = Mathf.Clamp(slideOffset + lsY * slideSpeed * Time.deltaTime, minSlide, maxSlide);
+        Vector3 targetLocalPos = startPos + new Vector3(slideOffset, 0f, 0f);
+
+        // 2. Tilt & Hold Angle (Right Stick X), return to 0 when released
+        float targetAngle = rsX * maxAngle;
+        currentAngle = Mathf.Lerp(currentAngle, targetAngle, snapSpeed * Time.deltaTime);
+
+        // Stop microscopic lerping when nearly at rest so the foot never jitters against the ball
+        if (Mathf.Abs(currentAngle - targetAngle) < 0.05f)
+        {
+            currentAngle = targetAngle;
+        }
+
+        Quaternion targetLocalRot = startRot * Quaternion.Euler(currentAngle, 0f, 0f);
+
+        // Move via Physics Rigidbody instead of teleporting Transform
+        if (transform.parent != null)
+        {
+            rb.MovePosition(transform.parent.TransformPoint(targetLocalPos));
+            rb.MoveRotation(transform.parent.rotation * targetLocalRot);
+        }
+        else
+        {
+            rb.MovePosition(targetLocalPos);
+            rb.MoveRotation(targetLocalRot);
+        }
+    }
+}
+
+
+==================== FILE: FoosballTeamManager.cs ====================
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class FoosballTeamManager : MonoBehaviour
+{
+    public FoosballRod[] rods; // Drag your 4 Blue Pivots here (GK, Def, Mid, Att)
+    public int activeRod = 0;
+
+    public float slideSpeed = 2.5f;
+    public float maxAngle = 80f;
+    public float snapSpeed = 25f;
+    public float deadzone = 0.2f; // Stops stick drift
+
+    void Update()
+    {
+        Gamepad pad = Gamepad.current;
+        if (pad == null || rods.Length == 0) return;
+
+        // Switch rod with LB and RB
+        if (pad.rightShoulder.wasPressedThisFrame)
+            activeRod = Mathf.Min(activeRod + 1, rods.Length - 1);
+        if (pad.leftShoulder.wasPressedThisFrame)
+            activeRod = Mathf.Max(activeRod - 1, 0);
+
+        // Read sticks & ignore drift inside deadzone
+        float lsY = pad.leftStick.ReadValue().y;
+        float rsX = pad.rightStick.ReadValue().x;
+
+        if (Mathf.Abs(lsY) < deadzone) lsY = 0f;
+        if (Mathf.Abs(rsX) < deadzone) rsX = 0f;
+
+        // Move active rod, reset others to upright (0)
+        for (int i = 0; i < rods.Length; i++)
+        {
+            if (i == activeRod)
+                rods[i].MoveAndRotate(lsY, rsX, slideSpeed, maxAngle, snapSpeed);
+            else
+                rods[i].MoveAndRotate(0f, 0f, slideSpeed, maxAngle, snapSpeed);
+        }
+    }
+}
+
+
+==================== FILE: FormationManager.cs ====================
+/*
+using UnityEngine;
+
+public class FormationManager : MonoBehaviour
+{
+    [Header("Balanced Formation")]
+    public Transform balanced;
+
+    [Header("Player")]
+    public GameObject bluePlayerPrefab;
+
+    [Header("Player Transform")]
+    public Vector3 playerPosition = new Vector3(0.3921f, 1.2261f, -0.6120f);
+    public Vector3 playerRotation = new Vector3(0f, -180f, 0f);
+    public Vector3 playerScale = new Vector3(0.027f, 0.027f, 0.027f);
+
+    [ContextMenu("Generate Blue Team")]
+    public void GenerateBlueTeam()
+    {
+        foreach (Transform point in balanced)
+        {
+            GameObject player = Instantiate(bluePlayerPrefab);
+
+            player.transform.position = point.position + playerPosition;
+            player.transform.rotation = Quaternion.Euler(playerRotation);
+            player.transform.localScale = playerScale;
+        }
+    }
+}
+*/
+
+
+==================== FILE: GoalZone.cs ====================
+using System.Collections;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
+using TMPro;
+
+public class GoalZone : MonoBehaviour
+{
+    [Header("Goal Setup")]
+    public bool isRedGoalHole = true;    // TRUE = Red's goal hole (Blue scores), FALSE = Blue's goal hole (Red scores)
+
+    [Header("UI & Light References")]
+    public TMP_Text scoreText;           // Top scoreboard text ("BLUE 0 - 0 RED")
+    public TMP_Text timerText;           // Countdown timer text ("02:00")
+    public TMP_Text goalMessageText;     // Center popup text ("Blue scored" / "Red scored" / Winner)
+    public Light goalLight;              // Point Light inside THIS goal pocket
+
+    [Header("Settings")]
+    public float celebrationTime = 2.0f; // Duration before respawning ball
+    public float matchDuration = 120f;   // Match time in seconds (120 = 2 minutes)
+
+    private static int blueScore = 0;
+    private static int redScore = 0;
+    private static float timeRemaining = 120f;
+    private static bool isMatchOver = false;
+    private static bool isCelebrating = false;
+
+    void Start()
+    {
+        // Only initialize the match state once from the Red Goal trigger
+        if (isRedGoalHole)
+        {
+            blueScore = 0;
+            redScore = 0;
+            timeRemaining = matchDuration;
+            isMatchOver = false;
+            isCelebrating = false;
+            UpdateUI();
+            UpdateTimerUI();
+        }
+
+        if (goalLight != null)
+            goalLight.color = Color.white;
+
+        if (goalMessageText != null)
+            goalMessageText.gameObject.SetActive(false);
+    }
+
+    void Update()
+    {
+        // Let only ONE trigger drive the timer and match-end input
+        if (!isRedGoalHole) return;
+
+        // When the match is over, press Keyboard R or Gamepad Y to restart the entire match
+        if (isMatchOver)
+        {
+            bool restartPressed = (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);
+
+            if (!restartPressed)
+            {
+                foreach (var pad in Gamepad.all)
+                {
+                    if (pad.buttonNorth.wasPressedThisFrame)
+                    {
+                        restartPressed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (restartPressed)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
+            return;
+        }
+
+        // Count down when not celebrating a goal
+        if (!isCelebrating && timeRemaining > 0f)
+        {
+            timeRemaining -= Time.deltaTime;
+
+            if (timeRemaining <= 0f)
+            {
+                timeRemaining = 0f;
+                EndMatch();
+            }
+
+            UpdateTimerUI();
+        }
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (isCelebrating || isMatchOver) return;
+
+        BallBooster ball = other.GetComponent<BallBooster>();
+        if (ball != null)
+        {
+            StartCoroutine(GoalSequence(ball));
+        }
+    }
+
+    IEnumerator GoalSequence(BallBooster ball)
+    {
+        isCelebrating = true;
+
+        // 1. Freeze and hide the ball inside the goal
+        Rigidbody rb = ball.GetComponent<Rigidbody>();
+        MeshRenderer mr = ball.GetComponent<MeshRenderer>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+        if (mr != null) mr.enabled = false;
+
+        // 2. Update score, glow the goal light, and display the message
+        if (isRedGoalHole)
+        {
+            blueScore++;
+            if (goalLight != null)
+                goalLight.color = Color.blue;
+
+            if (goalMessageText != null)
+            {
+                goalMessageText.text = "Blue scored";
+                goalMessageText.color = new Color(0.2f, 0.6f, 1f);
+                goalMessageText.gameObject.SetActive(true);
+            }
+        }
+        else
+        {
+            redScore++;
+            if (goalLight != null)
+                goalLight.color = Color.red;
+
+            if (goalMessageText != null)
+            {
+                goalMessageText.text = "Red scored";
+                goalMessageText.color = new Color(1f, 0.25f, 0.25f);
+                goalMessageText.gameObject.SetActive(true);
+            }
+        }
+
+        UpdateUI();
+
+        // 3. Hold the message and colored light
+        yield return new WaitForSeconds(celebrationTime);
+
+        // 4. Return light to white and hide the goal message (if match hasn't ended)
+        if (goalLight != null)
+            goalLight.color = Color.white;
+
+        if (!isMatchOver)
+        {
+            if (goalMessageText != null)
+                goalMessageText.gameObject.SetActive(false);
+
+            // 5. Unhide and respawn the ball at the center
+            if (mr != null) mr.enabled = true;
+            if (rb != null) rb.isKinematic = false;
+            ball.ResetBall();
+        }
+
+        isCelebrating = false;
+    }
+
+    void EndMatch()
+    {
+        isMatchOver = true;
+
+        // Freeze the ball in place when the final whistle blows
+        BallBooster ball = FindAnyObjectByType<BallBooster>();
+        if (ball != null)
+        {
+            Rigidbody rb = ball.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
+        }
+
+        // Show winner message
+        if (goalMessageText != null)
+        {
+            goalMessageText.gameObject.SetActive(true);
+
+            if (blueScore > redScore)
+            {
+                goalMessageText.text = "TIME'S UP!\nBLUE WINS!\n<size=40%>Press R or Y to Restart</size>";
+                goalMessageText.color = new Color(0.2f, 0.6f, 1f);
+            }
+            else if (redScore > blueScore)
+            {
+                goalMessageText.text = "TIME'S UP!\nRED WINS!\n<size=40%>Press R or Y to Restart</size>";
+                goalMessageText.color = new Color(1f, 0.25f, 0.25f);
+            }
+            else
+            {
+                goalMessageText.text = "TIME'S UP!\nDRAW MATCH!\n<size=40%>Press R or Y to Restart</size>";
+                goalMessageText.color = Color.yellow;
+            }
+        }
+    }
+
+    void UpdateUI()
+    {
+        if (scoreText != null)
+        {
+            scoreText.text = $"BLUE {blueScore}  -  {redScore} RED";
+        }
+    }
+
+    void UpdateTimerUI()
+    {
+        if (timerText != null)
+        {
+            int minutes = Mathf.FloorToInt(timeRemaining / 60f);
+            int seconds = Mathf.FloorToInt(timeRemaining % 60f);
+            timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+
+            // Turn timer red in the final 10 seconds!
+            timerText.color = (timeRemaining <= 10f) ? Color.red : Color.white;
+        }
+    }
+}
+
+
+==================== FILE: MainMenuController.cs ====================
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem; // Required for the new Input System
+
+public class MainMenuController : MonoBehaviour
+{
+    [Header("UI Panels")]
+    public GameObject instructionsPanel; // Drag your InstructionsPanel here in Unity
+
+    [Header("Links")]
+    public string googleFormUrl = "https://docs.google.com/forms/d/1n10Xxc1BAjbht95QYK520ul-ahuhA9GxpUiwkB2N4bs/";
+
+    void Update()
+    {
+        // Check if the Escape key is pressed using the new Input System
+        if (instructionsPanel != null && instructionsPanel.activeSelf && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            CloseInstruction();
+        }
+    }
+
+    public void PlayGame()
+    {
+        SceneManager.LoadScene("Game");
+    }
+
+    public void OpenInstruction()
+    {
+        if (instructionsPanel != null)
+        {
+            instructionsPanel.SetActive(true); // Show the instructions panel
+        }
+    }
+
+    public void CloseInstruction()
+    {
+        if (instructionsPanel != null)
+        {
+            instructionsPanel.SetActive(false); // Hide the instructions panel
+        }
+    }
+
+    public void OpenFeedback()
+    {
+        Application.OpenURL(googleFormUrl);
+    }
+
+    public void QuitGame()
+    {
+        Debug.Log("Quitting Game...");
+        Application.Quit();
+    }
+}
+
+
+==================== FILE: PauseMenuController.cs ====================
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
+
+public class PauseMenuController : MonoBehaviour
+{
+    public GameObject Pause;
+    public GameObject Instruction;
+
+    void Update()
+    {
+        bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
+        bool start = Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame;
+
+        if (esc || start)
+        {
+            // If the instruction sub-panel is open, close it first
+            if (Instruction != null && Instruction.activeSelf)
+            {
+                CloseInstruction();
+            }
+            // If pause menu is open, resume the game
+            else if (Pause != null && Pause.activeSelf)
+            {
+                Resume();
+            }
+            // Otherwise, open pause menu
+            else
+            {
+                OpenPause();
+            }
+        }
+    }
+
+    public void OpenPause()
+    {
+        Pause.SetActive(true);
+        Time.timeScale = 0f;
+    }
+
+    public void Resume()
+    {
+        Pause.SetActive(false);
+        if (Instruction != null) Instruction.SetActive(false);
+        Time.timeScale = 1f;
+    }
+
+    public void OpenInstruction()
+    {
+        if (Instruction != null) Instruction.SetActive(true);
+    }
+
+    public void CloseInstruction()
+    {
+        if (Instruction != null) Instruction.SetActive(false);
+    }
+
+    public void MainMenu()
+    {
+        Time.timeScale = 1f; // Unfreeze the game before loading
+        SceneManager.LoadScene("Main Menu"); // Redirects to the Main Menu scene
+    }
+}
+
+
+==================== FILE: RedTeamAI.cs ====================
+using UnityEngine;
+using System.Collections.Generic;
+
+public class RedTeamAI : MonoBehaviour
+{
+    [Header("Assign References")]
+    public FoosballRod[] redRods;
+    public Transform ball;
+    private Rigidbody ballRb;
+
+    [Header("Movement Settings")]
+    public float slideSpeed = 2.0f;       // Increased from 0.6 for snappier tracking
+    public float predictionTime = 0.08f;  // How far ahead the AI predicts ball movement
+    public float deadzone = 0.015f;       // Stops rods from jittering when aligned
+
+    [Header("Kick & Rotation Settings")]
+    public float maxAngle = 80f;
+    public float snapSpeed = 30f;
+    public float kickRange = 0.16f;       // Z-distance to trigger a snap kick
+    public float windUpRange = 0.35f;     // Z-distance to pull foot back in preparation
+    public float kickDirection = -1f;     // Set to -1 or 1 depending on which way kicks forward
+
+    // Stores the child player transforms for each rod so the AI knows where every foot is
+    private List<Transform>[] rodPlayers;
+    private float[] kickTimers;
+
+    void Start()
+    {
+        if (ball != null)
+        {
+            ballRb = ball.GetComponent<Rigidbody>();
+        }
+
+        if (redRods != null)
+        {
+            rodPlayers = new List<Transform>[redRods.Length];
+            kickTimers = new float[redRods.Length];
+
+            for (int i = 0; i < redRods.Length; i++)
+            {
+                rodPlayers[i] = new List<Transform>();
+                if (redRods[i] == null) continue;
+
+                // Find all player figures attached to this rod via their Colliders
+                Collider[] colliders = redRods[i].GetComponentsInChildren<Collider>();
+                foreach (Collider col in colliders)
+                {
+                    if (col.transform != redRods[i].transform)
+                    {
+                        rodPlayers[i].Add(col.transform);
+                    }
+                }
+
+                // Fallback: If no colliders are found on children yet, grab direct children
+                if (rodPlayers[i].Count == 0)
+                {
+                    foreach (Transform child in redRods[i].transform)
+                    {
+                        rodPlayers[i].Add(child);
+                    }
+                }
+            }
+        }
+    }
+
+    void Update()
+    {
+        if (ball == null || redRods == null || redRods.Length == 0) return;
+
+        // Predict future ball position based on current velocity
+        Vector3 predictedBallPos = ball.position;
+        if (ballRb != null)
+        {
+            predictedBallPos += ballRb.linearVelocity * predictionTime;
+        }
+
+        for (int i = 0; i < redRods.Length; i++)
+        {
+            if (redRods[i] == null) continue;
+
+            // --- 1. SLIDE LOGIC (Find the closest player figure on this rod to the ball) ---
+            float targetX = predictedBallPos.x;
+            float closestPlayerX = redRods[i].transform.position.x;
+
+            if (rodPlayers != null && rodPlayers[i].Count > 0)
+            {
+                float minDist = float.MaxValue;
+                foreach (Transform player in rodPlayers[i])
+                {
+                    if (player == null) continue;
+                    float dist = Mathf.Abs(targetX - player.position.x);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        closestPlayerX = player.position.x;
+                    }
+                }
+            }
+
+            float xDiff = targetX - closestPlayerX;
+            float lsY = 0f;
+
+            // Only slide if outside the deadzone to prevent micro-jittering
+            if (Mathf.Abs(xDiff) > deadzone)
+            {
+                lsY = Mathf.Clamp(xDiff * 6f, -1f, 1f);
+            }
+
+            // --- 2. ROTATION / KICK LOGIC ---
+            float zDiff = ball.position.z - redRods[i].transform.position.z;
+            float zDist = Mathf.Abs(zDiff);
+            float xDistToPlayer = Mathf.Abs(ball.position.x - closestPlayerX);
+
+            float rsX = 0f;
+
+            // If the ball is close on the Z-axis AND lined up with a player foot on the X-axis
+            if (zDist < kickRange && xDistToPlayer < 0.22f)
+            {
+                // Snap kick repeat loop (swings forward hard, resets briefly if ball gets stuck)
+                kickTimers[i] += Time.deltaTime * 16f;
+                rsX = Mathf.Sin(kickTimers[i]) > -0.2f ? kickDirection : -kickDirection * 0.6f;
+            }
+            else if (zDist < windUpRange)
+            {
+                // Ball is approaching: pull foot back slightly for a stronger hit
+                kickTimers[i] = 0f;
+                rsX = -kickDirection * 0.45f;
+            }
+            else
+            {
+                kickTimers[i] = 0f;
+                rsX = 0f; // Rest in neutral vertical stance
+            }
+
+            // Send final calculated inputs to your FoosballRod script
+            redRods[i].MoveAndRotate(lsY, rsX, slideSpeed, maxAngle, snapSpeed);
+        }
+    }
+}
+
+
+==================== FILE: RedTeamKeyboard.cs ====================
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class RedTeamKeyboard : MonoBehaviour
+{
+    public FoosballRod[] redRods; // 0: GK, 1: Def, 2: Mid, 3: Att
+    public int activeRod = 0;
+
+    public float slideSpeed = 2.5f;
+    public float maxAngle = 80f;
+    public float snapSpeed = 30f;
+
+    void Update()
+    {
+        var kb = Keyboard.current;
+        if (kb == null || redRods == null || redRods.Length == 0) return;
+
+        // 1. SWITCH RODS: Q increases index, E decreases index (locked between 0 and 3)
+        if (kb.qKey.wasPressedThisFrame)
+            activeRod = Mathf.Clamp(activeRod + 1, 0, redRods.Length - 1);
+        if (kb.eKey.wasPressedThisFrame)
+            activeRod = Mathf.Clamp(activeRod - 1, 0, redRods.Length - 1);
+
+        if (kb.digit1Key.wasPressedThisFrame) activeRod = 0;
+        if (kb.digit2Key.wasPressedThisFrame && redRods.Length > 1) activeRod = 1;
+        if (kb.digit3Key.wasPressedThisFrame && redRods.Length > 2) activeRod = 2;
+        if (kb.digit4Key.wasPressedThisFrame && redRods.Length > 3) activeRod = 3;
+
+        // 2. SLIDE: W / S or Up / Down Arrows
+        float slide = 0f;
+        if (kb.wKey.isPressed || kb.upArrowKey.isPressed) slide = 1f;
+        else if (kb.sKey.isPressed || kb.downArrowKey.isPressed) slide = -1f;
+
+        // 3. KICK: A / D or Left / Right Arrows
+        float kick = 0f;
+        if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) kick = -1f;
+        else if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) kick = 1f;
+
+        // 4. APPLY: Move active rod, reset unselected rods to upright (0, 0)
+        for (int i = 0; i < redRods.Length; i++)
+        {
+            if (redRods[i] == null) continue;
+
+            if (i == activeRod)
+                redRods[i].MoveAndRotate(slide, kick, slideSpeed, maxAngle, snapSpeed);
+            else
+                redRods[i].MoveAndRotate(0f, 0f, slideSpeed, maxAngle, snapSpeed);
+        }
+    }
+}
+
+
+==================== FILE: RedTeamSpawner.cs ====================
+using UnityEngine;
+
+public class RedTeamSpawner : MonoBehaviour
+{
+    [Header("Red Player Prefab")]
+    public GameObject redPlayerPrefab;
+
+    [Header("Spawn Points (2-5-3)")]
+    public Transform[] spawnPoints;
+
+    [Header("Player Transform")]
+    public Vector3 positionOffset;
+    public Vector3 rotation;
+    public Vector3 scale = new Vector3(0.027f, 0.027f, 0.027f);
+
+    [ContextMenu("Spawn Red Team")]
+    public void SpawnTeam()
+    {
+        foreach (Transform point in spawnPoints)
+        {
+            GameObject player = Instantiate(redPlayerPrefab);
+
+            player.transform.position = point.position + positionOffset;
+            player.transform.rotation = Quaternion.Euler(rotation);
+            player.transform.localScale = scale;
+        }
+    }
+}
+
+
