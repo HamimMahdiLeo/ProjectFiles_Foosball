@@ -2906,8 +2906,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.27037966, y: 0.13062072, z: 0.15016341}
-  m_Center: {x: 0.004085928, y: 0.025032163, z: -0.06847441}
+  m_Size: {x: 0.27037966, y: 0.13062072, z: 0.15427056}
+  m_Center: {x: 0.004085928, y: 0.025032163, z: -0.070527986}
 --- !u!114 &829910178
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4243,7 +4243,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallBooster
   maxSpeed: 5
-  nudgePower: 1.5
+  nudgePower: 2
 --- !u!1001 &1449021311
 PrefabInstance:
   m_ObjectHideFlags: 0
